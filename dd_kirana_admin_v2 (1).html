@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DD KIRANA - Admin Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; color: #333; }
+  header { background: linear-gradient(135deg,#FF6B35,#FF8C42); color: #fff; padding: 14px 20px;
+           display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 1.3em; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  h2 { color: #FF6B35; margin-bottom: 12px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab { padding: 10px 16px; background: #eee; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  .tab.active { background: #FF6B35; color: #fff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-weight: bold; margin-bottom: 4px; font-size: .95em; }
+  input, select, textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #FF6B35; }
+  .btn { padding: 10px 16px; background: #FF6B35; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  .btn-green { background: #4CAF50; }
+  .btn-red { background: #e53935; }
+  .btn-gray { background: #666; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th { background: #FF6B35; color: #fff; text-align: left; padding: 10px; }
+  td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  .msg { padding: 10px 14px; border-radius: 6px; margin: 10px 0; display: none; }
+  .msg.ok { background: #d4edda; color: #155724; display: block; }
+  .msg.err { background: #f8d7da; color: #721c24; display: block; }
+  .hint { font-size: .85em; color: #777; margin-top: 4px; }
+  pre { background: #222; color: #0f0; padding: 12px; border-radius: 6px; overflow: auto; font-size: .85em; white-space: pre-wrap; word-break: break-all; }
+  .hidden { display: none !important; }
+  .login { max-width: 360px; margin: 60px auto; text-align: center; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header id="hdr" class="hidden">
+  <h1>⚙️ DD KIRANA - Admin</h1>
+  <button class="btn btn-gray" onclick="logout()">Logout</button>
+</header>
+
+<!-- LOGIN -->
+<div id="loginView" class="wrap">
+  <div class="card login">
+    <h2>🔐 Admin Login</h2>
+    <input type="password" id="pin" placeholder="PIN" inputmode="numeric" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn" style="width:100%; margin-top:12px;" onclick="login()">Login</button>
+    <div id="loginMsg" class="msg err"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminView" class="wrap hidden">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('products', this)">📦 Products</button>
+    <button class="tab" onclick="showTab('settings', this)">💰 Charges & Details</button>
+    <button class="tab" onclick="showTab('publish', this)">🚀 Website Update</button>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="tab-products" class="card">
+    <h2 id="formTitle">➕ Naya Product</h2>
+    <input type="hidden" id="editId">
+    <div class="grid2">
+      <div><label>Product naam *</label><input id="pName" placeholder="Jaise: Aashirvaad Atta"></div>
+      <div><label>Size / Brand</label><input id="pBrand" placeholder="Jaise: 5kg"></div>
+      <div><label>Price (₹) *</label><input id="pPrice" type="number" min="0" placeholder="Jaise: 280"></div>
+      <div><label>Photo URL (optional)</label><input id="pImage" placeholder="https://..."></div>
+    </div>
+    <div class="hint">Photo ka link Google Images ya product ki website se copy karke yahan daalein.</div>
+    <div class="hint" style="color:#c62828; margin-top:8px;">⚠️ Yahan ka change customer website par apne aap nahi jata. Customer website par number/UPI ya products badalne ke liye "Website Update" tab ka code use karein.</div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-green" onclick="saveProduct()">💾 Save Product</button>
+      <button class="btn btn-gray" onclick="resetForm()">Clear</button>
+    </div>
+    <div id="prodMsg" class="msg"></div>
+
+    <h2 style="margin-top:24px;">📋 Saare Products (<span id="count">0</span>)</h2>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Photo</th><th>Naam</th><th>Size</th><th>Price</th><th>Action</th></tr></thead>
+        <tbody id="prodBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="card hidden">
+    <h2>💰 Charges & Details</h2>
+    <div class="grid2">
+      <div><label>Cash on Delivery extra charge (₹)</label><input id="codExtra" type="number" min="0"></div>
+      <div><label>UPI discount (₹)</label><input id="upiDiscount" type="number" min="0"></div>
+      <div><label>WhatsApp number (country code ke saath)</label><input id="waNumber" placeholder="919508376360"></div>
+      <div><label>UPI ID</label><input id="upiId" placeholder="9508376360@ybl"></div>
+      <div><label>Delivery area (km)</label><input id="deliveryKm" type="number" min="0"></div>
+      <div><label>Offer text</label><input id="offerText"></div>
+    </div>
+    <div style="margin-top:12px;"><button class="btn btn-green" onclick="saveSettings()">💾 Save Settings</button></div>
+    <div id="setMsg" class="msg"></div>
+  </div>
+
+  <!-- PUBLISH -->
+  <div id="tab-publish" class="card hidden">
+    <h2>🚀 Customer website ko update karein</h2>
+    <p style="margin-bottom:10px;">Products aur charges badalne ke baad neeche wala code copy karein.</p>
+    <button class="btn" onclick="buildConfig()">📋 Config code banao</button>
+    <div id="pubMsg" class="msg"></div>
+    <pre id="configOut" class="hidden"></pre>
+    <p class="hint" style="margin-top:12px;">
+      Is code ko customer website file ke andar <b>STORE_CONFIG</b> wali jagah par paste karke wahi file dobara upload karein.
+    </p>
+  </div>
+</div>
+
+<script>
+  // Simple client-side PIN gate (lock for casual use; anyone with source access can see it)
+  const ADMIN_PIN = '904080';
+  const KEY = 'dd_admin_data_v2';
+
+  const defaults = {
+    products: [
+      { id: 1, name: 'Aashirvaad Basmati Rice', brand: '2kg', price: 320, image: '' },
+      { id: 2, name: 'Fortune Sunflower Oil', brand: '1L', price: 155, image: '' },
+      { id: 3, name: 'Britannia Good Day', brand: '400g', price: 75, image: '' },
+      { id: 4, name: 'Kurkure Namkeen', brand: '20g', price: 10, image: '' },
+      { id: 5, name: 'Thums Up', brand: '250ml', price: 50, image: '' },
+      { id: 6, name: 'Sprite', brand: '250ml', price: 50, image: '' }
+    ],
+    settings: { codExtra: 10, upiDiscount: 0, waNumber: '918658254009', upiId: '8658254009@ybl', deliveryKm: 2, offerText: '₹500 ka saman lo → 1 FREE BAG paao!' },
+    nextId: 7
+  };
+
+  let data = JSON.parse(localStorage.getItem(KEY)) || defaults;
+  // Purane saved settings ko naye number par le aao
+  if (data.settings) {
+    data.settings.waNumber = '918658254009';
+    data.settings.upiId = '8658254009@ybl';
+  }
+
+  function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+  function login() {
+    if (document.getElementById('pin').value === ADMIN_PIN) {
+      sessionStorage.setItem('dd_admin_ok', '1');
+      showAdmin();
+    } else {
+      const m = document.getElementById('loginMsg');
+      m.textContent = 'Galat PIN';
+      m.className = 'msg err';
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('dd_admin_ok');
+    location.reload();
+  }
+
+  function showAdmin() {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.remove('hidden');
+    document.getElementById('hdr').classList.remove('hidden');
+    renderProducts();
+    loadSettings();
+  }
+
+  function showTab(name, btn) {
+    ['products', 'settings', 'publish'].forEach(t =>
+      document.getElementById('tab-' + t).classList.toggle('hidden', t !== name));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function flash(id, text, ok) {
+    const m = document.getElementById(id);
+    m.textContent = text;
+    m.className = 'msg ' + (ok ? 'ok' : 'err');
+    setTimeout(() => { m.className = 'msg'; }, 3000);
+  }
+
+  function resetForm() {
+    ['editId', 'pName', 'pBrand', 'pPrice', 'pImage'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('formTitle').textContent = '➕ Naya Product';
+  }
+
+  function saveProduct() {
+    const name = document.getElementById('pName').value.trim();
+    const brand = document.getElementById('pBrand').value.trim();
+    const price = parseFloat(document.getElementById('pPrice').value);
+    const image = document.getElementById('pImage').value.trim();
+    const editId = document.getElementById('editId').value;
+
+    if (!name || isNaN(price) || price < 0) {
+      flash('prodMsg', 'Naam aur sahi price zaroori hain.', false);
+      return;
+    }
+
+    if (editId) {
+      const p = data.products.find(x => x.id == editId);
+      if (p) Object.assign(p, { name, brand, price, image });
+      flash('prodMsg', '✅ Product update ho gaya', true);
+    } else {
+      data.products.push({ id: data.nextId++, name, brand, price, image });
+      flash('prodMsg', '✅ Product add ho gaya', true);
+    }
+    save();
+    resetForm();
+    renderProducts();
+  }
+
+  function editProduct(id) {
+    const p = data.products.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('editId').value = p.id;
+    document.getElementById('pName').value = p.name;
+    document.getElementById('pBrand').value = p.brand;
+    document.getElementById('pPrice').value = p.price;
+    document.getElementById('pImage').value = p.image;
+    document.getElementById('formTitle').textContent = '✏️ Product edit karein';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteProduct(id) {
+    if (!confirm('Ye product delete karna hai?')) return;
+    data.products = data.products.filter(x => x.id !== id);
+    save();
+    renderProducts();
+  }
+
+  function renderProducts() {
+    document.getElementById('count').textContent = data.products.length;
+    document.getElementById('prodBody').innerHTML = data.products.map(p => `
+      <tr>
+        <td>${p.image ? `<img src="${p.image}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">` : '—'}</td>
+        <td>${p.name}</td>
+        <td>${p.brand}</td>
+        <td><b>₹${p.price}</b></td>
+        <td>
+          <button class="btn" onclick="editProduct(${p.id})">Edit</button>
+          <button class="btn btn-red" onclick="deleteProduct(${p.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function loadSettings() {
+    const s = data.settings;
+    document.getElementById('codExtra').value = s.codExtra;
+    document.getElementById('upiDiscount').value = s.upiDiscount;
+    document.getElementById('waNumber').value = s.waNumber;
+    document.getElementById('upiId').value = s.upiId;
+    document.getElementById('deliveryKm').value = s.deliveryKm;
+    document.getElementById('offerText').value = s.offerText;
+  }
+
+  function saveSettings() {
+    data.settings = {
+      codExtra: parseFloat(document.getElementById('codExtra').value) || 0,
+      upiDiscount: parseFloat(document.getElementById('upiDiscount').value) || 0,
+      waNumber: document.getElementById('waNumber').value.trim(),
+      upiId: document.getElementById('upiId').value.trim(),
+      deliveryKm: parseFloat(document.getElementById('deliveryKm').value) || 0,
+      offerText: document.getElementById('offerText').value.trim()
+    };
+    save();
+    flash('setMsg', '✅ Settings save ho gayi', true);
+  }
+
+  function buildConfig() {
+    const cfg = 'const STORE_CONFIG = ' + JSON.stringify({ settings: data.settings, products: data.products }, null, 2) + ';';
+    const out = document.getElementById('configOut');
+    out.textContent = cfg;
+    out.classList.remove('hidden');
+    if (navigator.clipboard) navigator.clipboard.writeText(cfg).catch(() => {});
+    flash('pubMsg', '✅ Code bana aur clipboard par copy ho gaya', true);
+  }
+
+  if (sessionStorage.getItem('dd_admin_ok') === '1') showAdmin();
+</script>
+</body>
+</html>
